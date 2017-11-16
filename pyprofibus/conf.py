@@ -70,6 +70,32 @@ class PbConf(object):
 	__reSlave = re.compile(r'^SLAVE_(\d+)$')
 	__reMod = re.compile(r'^module_(\d+)$')
 
+
+	class _Line(object):
+		"""Raw line.
+		"""
+		def __init__(self, lineNr, text):
+			self.lineNr = lineNr
+			self.text = text
+		def __repr__(self):
+			return "_Line(lineNr = %d, text = '%s')" % (self.lineNr, self.text)
+
+	def preprocess(self, text):
+		dictline = {}
+		dkey = ''
+		for idx, line in enumerate(text.splitlines()):
+			if line.startswith("*"):
+				break
+			if line.startswith(";") or not line.strip():
+				continue
+			if line.startswith("["):
+				dkey = line[1:-1]
+				dictline[dkey] = {}
+				continue
+			sptline = line.split("=")
+			dictline[dkey][sptline[0]] = self._Line(idx + 1, sptline[1])
+		return dictline
+
 	def __init__(self, text, filename = None):
 		def get(section, option, fallback = None):
 			if p.has_option(section, option):
@@ -93,6 +119,8 @@ class PbConf(object):
 					section, option))
 			return fallback
 		try:
+			line = self.preprocess(text=text)
+			print(line)
 			p = _ConfigParser()
 			p.readfp(StringIO(text), filename)
 
@@ -124,9 +152,12 @@ class PbConf(object):
 				if not m:
 					continue
 				s = self._SlaveConf()
+
 				s.addr = getint(section, "addr")
-				s.gsd = GsdInterp.fromFile(
-					get(section, "gsd"))
+
+				# s.gsd = GsdInterp.fromFile(get(section, "gsd"))
+				s.gsd = GsdInterp.fromFile(filename, get(section, "gsd"), True)
+
 				s.syncMode = getboolean(section, "sync_mode",
 							fallback = False)
 				s.freezeMode = getboolean(section, "freeze_mode",
@@ -148,6 +179,7 @@ class PbConf(object):
 
 				mods = [ o for o in p.options(section)
 					 if self.__reMod.match(o) ]
+
 				mods.sort(key = lambda o: self.__reMod.match(o).group(1))
 				for option in mods:
 					s.gsd.setConfiguredModule(get(section, option))

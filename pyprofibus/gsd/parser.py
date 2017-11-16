@@ -101,7 +101,7 @@ class GsdParser(object):
 			self.configBytes = configBytes
 
 	@classmethod
-	def fromFile(cls, filepath, debug = False):
+	def fromFile(cls, filepath, gsdname, debug = False):
 		try:
 			with open(filepath, "rb") as fd:
 				data = fd.read()
@@ -119,6 +119,7 @@ class GsdParser(object):
 		return cls(text, filename, debug)
 
 	def __init__(self, text, filename = None, debug = False):
+		# print(text)
 		self.__debug = debug
 		self.__filename = filename
 		self.__reset()
@@ -195,12 +196,8 @@ class GsdParser(object):
 	_reNum = r'(?:0x[0-9a-fA-F]+)|(?:[0-9]+)'
 	_reStr = r'[ a-zA-Z0-9\._\-\+\*\/\<\>\(\)\[\]\{\}\!\$\%\&\?\^\|\=\#\;\,\:\`]+'
 
-	_reExtUserPrmData = re.compile(r'^ExtUserPrmData\s*=\s*(' +\
-				       _reNum + r')\s+' +\
-				       r'"(' + _reStr + r')"$')
-	_reModule = re.compile(r'^Module\s*=\s*' +\
-			       r'"(' + _reStr + r')"\s+' +\
-			       r'(.+)$')
+	_reExtUserPrmData = re.compile(r'^ExtUserPrmData\s*=\s*(' + _reNum + r')\s+' + r'"(' + _reStr + r')"$')
+	_reModule = re.compile(r'^Module\s*=\s*' + r'"(' + _reStr + r')"\s+' + r'(.+)$')
 
 	_STATE_GLOBAL		= 0
 	_STATE_PRMTEXT		= 1
@@ -366,6 +363,7 @@ class GsdParser(object):
 			try:
 				refNr = self.__parseNum(m.group(1))
 				name = m.group(2)
+
 				self.__fields.setdefault("ExtUserPrmData", []).append(
 					self._ExtUserPrmData(refNr, name))
 				self.__state = self._STATE_EXTUSERPRMDATA
@@ -400,7 +398,8 @@ class GsdParser(object):
 		self.__parseWarn(line, "Ignored unknown line")
 
 	def __parseLine_prmText(self, line):
-		if line.text == "EndPrmText":
+
+		if line.text == "EndPrmText=1":
 			self.__state = self._STATE_GLOBAL
 			return
 
@@ -416,7 +415,7 @@ class GsdParser(object):
 		self.__parseWarn(line, "Ignored unknown line")
 
 	def __parseLine_extUserPrmData(self, line):
-		if line.text == "EndExtUserPrmData":
+		if line.text == "EndExtUserPrmData=1":
 			self.__state = self._STATE_GLOBAL
 			return
 
@@ -432,7 +431,7 @@ class GsdParser(object):
 		self.__parseWarn(line, "Ignored unknown line")
 
 	def __parseLine_module(self, line):
-		if line.text == "EndModule":
+		if line.text == "EndModule=1":
 			self.__state = self._STATE_GLOBAL
 			return
 
