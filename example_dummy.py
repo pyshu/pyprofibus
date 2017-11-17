@@ -1,4 +1,4 @@
-#!/usr/bin/env python3
+#!/usr/bin/env python
 #
 # Simple pyprofibus dummy example using dummy PHY.
 # This example can be run without any PB hardware.
@@ -13,15 +13,17 @@ master = None
 try:
 	# Parse the config file.
 	config = pyprofibus.PbConf.fromFile("example_dummy.conf")
+	print "file: example_dummy.py lines:16"
 
 	# Create a PHY (layer 1) interface object
 	phy = config.makePhy()
-
+	print "file: example_dummy.py lines:20"
 	# Create a DP class 1 master with DP address 1
 	master = pyprofibus.DPM1(phy = phy,
 				 masterAddr = config.dpMasterAddr,
 				 debug = True)
-
+	print "file: example_dummy.py lines:25"
+	exit(-1)
 	# Create a slave descriptions.
 	for slaveConf in config.slaveConfs:
 		gsd = slaveConf.gsd

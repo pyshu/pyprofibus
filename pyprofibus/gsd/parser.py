@@ -101,29 +101,28 @@ class GsdParser(object):
 			self.configBytes = configBytes
 
 	@classmethod
-	def fromFile(cls, filepath, gsdname, debug = False):
+	def fromFile(cls, filepath, gsd = None, debug = False):
 		try:
 			with open(filepath, "rb") as fd:
 				data = fd.read()
 		except (IOError, UnicodeError) as e:
 			raise GsdError("Failed to read GSD file '%s':\n%s" % (
 				filepath, str(e)))
-		return cls.fromBytes(data, filepath, debug)
+		return cls.fromBytes(data, gsd, filepath, debug)
 
 	@classmethod
-	def fromBytes(cls, data, filename = None, debug = False):
+	def fromBytes(cls, data, gsd, filename = None, debug = False):
 		try:
 			text = data.decode("latin_1")
 		except UnicodeError as e:
 			raise GsdError("Failed to parse GSD data: %s" % str(e))
-		return cls(text, filename, debug)
+		return cls(text, gsd, filename, debug)
 
-	def __init__(self, text, filename = None, debug = False):
-		# print(text)
+	def __init__(self, text, gsd = None, filename = None, debug = False):
 		self.__debug = debug
 		self.__filename = filename
 		self.__reset()
-		self.__parse(text)
+		self.__parse(text , gsd)
 
 	def getFileName(self):
 		return self.__filename
@@ -134,9 +133,21 @@ class GsdParser(object):
 	def __reset(self):
 		self.__fields = {}
 
-	def __preprocess(self, text):
+	def __preprocess(self, text, gsd):
 		lines = [ self._Line(i + 1, l)
 			  for i, l in enumerate(text.splitlines()) ]
+		
+		if gsd:
+			newLines, findGsd = [], False
+			for line in lines:
+				if findGsd:
+					if line.text.startswith("["):
+						break
+					newLines.append(line)
+				else:
+					if line.text == "[%s]"%(gsd):
+						findGsd = True
+			lines = newLines
 
 		# Find the GSD section and discard the rest.
 		newLines, inGsd = [], False
@@ -399,7 +410,7 @@ class GsdParser(object):
 
 	def __parseLine_prmText(self, line):
 
-		if line.text == "EndPrmText=1":
+		if line.text == "EndPrmText":
 			self.__state = self._STATE_GLOBAL
 			return
 
@@ -415,7 +426,7 @@ class GsdParser(object):
 		self.__parseWarn(line, "Ignored unknown line")
 
 	def __parseLine_extUserPrmData(self, line):
-		if line.text == "EndExtUserPrmData=1":
+		if line.text == "EndExtUserPrmData":
 			self.__state = self._STATE_GLOBAL
 			return
 
@@ -431,7 +442,7 @@ class GsdParser(object):
 		self.__parseWarn(line, "Ignored unknown line")
 
 	def __parseLine_module(self, line):
-		if line.text == "EndModule=1":
+		if line.text == "EndModule":
 			self.__state = self._STATE_GLOBAL
 			return
 
@@ -467,8 +478,8 @@ class GsdParser(object):
 
 		self.__parseWarn(line, "Ignored unknown line")
 
-	def __parse(self, text):
-		lines = self.__preprocess(text)
+	def __parse(self, text, gsd):
+		lines = self.__preprocess(text, gsd)
 
 		self.__state = self._STATE_GLOBAL
 

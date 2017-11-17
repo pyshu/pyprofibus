@@ -18,12 +18,12 @@ from pyprofibus.util import *
 import re
 from io import StringIO
 
-if isPy2Compat:
-	from ConfigParser import SafeConfigParser as _ConfigParser
-	from ConfigParser import Error as _ConfigParserError
-else:
-	from configparser import ConfigParser as _ConfigParser
-	from configparser import Error as _ConfigParserError
+# if isPy2Compat:
+# 	from ConfigParser import SafeConfigParser as _ConfigParser
+# 	from ConfigParser import Error as _ConfigParserError
+# else:
+# 	from configparser import ConfigParser as _ConfigParser
+# 	from configparser import Error as _ConfigParserError
 
 
 class PbConfError(ProfibusError):
@@ -98,31 +98,37 @@ class PbConf(object):
 
 	def __init__(self, text, filename = None):
 		def get(section, option, fallback = None):
-			if p.has_option(section, option):
-				return p.get(section, option)
+			if section in lines.keys() and option in lines[section].keys():
+				return lines[section][option].text
+			# if p.has_option(section, option):
+			# 	return p.get(section, option)
 			if fallback is None:
 				raise ValueError("Option [%s] '%s' does not exist." % (
 					section, option))
 			return fallback
 		def getboolean(section, option, fallback = None):
-			if p.has_option(section, option):
-				return p.getboolean(section, option)
+			if section in lines.keys() and option in lines[section].keys():
+				return bool(lines[section][option].text)
+			# if p.has_option(section, option):
+			# 	return p.getboolean(section, option)
 			if fallback is None:
 				raise ValueError("Option [%s] '%s' does not exist." % (
 					section, option))
 			return fallback
 		def getint(section, option, fallback = None):
-			if p.has_option(section, option):
-				return p.getint(section, option)
+			if section in lines.keys() and option in lines[section].keys():
+				return int(lines[section][option].text)
+			# if p.has_option(section, option):
+			# 	return p.getint(section, option)
 			if fallback is None:
 				raise ValueError("Option [%s] '%s' does not exist." % (
 					section, option))
 			return fallback
 		try:
-			line = self.preprocess(text=text)
-			print(line)
-			p = _ConfigParser()
-			p.readfp(StringIO(text), filename)
+			lines = self.preprocess(text=text)
+			print(lines)
+			# p = _ConfigParser()
+			# p.readfp(StringIO(text), filename)
 
 			# [PROFIBUS]
 			self.debug = getint("PROFIBUS", "debug",
@@ -147,7 +153,8 @@ class PbConf(object):
 				raise ValueError("Invalid master_addr")
 
 			self.slaveConfs = []
-			for section in p.sections():
+			# for section in p.sections():
+			for section in lines.keys():
 				m = self.__reSlave.match(section)
 				if not m:
 					continue
@@ -177,7 +184,7 @@ class PbConf(object):
 				if s.outputSize < 0 or s.outputSize > 246:
 					raise ValueError("Invalid output_size")
 
-				mods = [ o for o in p.options(section)
+				mods = [ o for o in lines[section].keys()
 					 if self.__reMod.match(o) ]
 
 				mods.sort(key = lambda o: self.__reMod.match(o).group(1))
@@ -186,7 +193,8 @@ class PbConf(object):
 
 				self.slaveConfs.append(s)
 
-		except (_ConfigParserError, ValueError) as e:
+		# except (_ConfigParserError, ValueError) as e:
+		except ValueError as e:
 			raise PbConfError("Profibus config file parse "
 				"error:\n%s" % str(e))
 		except GsdError as e:

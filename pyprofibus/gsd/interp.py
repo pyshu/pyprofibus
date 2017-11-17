@@ -20,8 +20,8 @@ class GsdInterp(GsdParser):
 	"""GSD file/data interpreter.
 	"""
 
-	def __init__(self, text, filename = None, debug = False):
-		super(GsdInterp, self).__init__(text, filename, debug)
+	def __init__(self, text, gsd = None, filename = None, debug = False):
+		super(GsdInterp, self).__init__(text, gsd, filename, debug)
 		self.__configMods = []
 		self.__addPresetModules(onlyFixed = False)
 
